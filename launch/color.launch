@@ -1,0 +1,11 @@
+<launch>
+	 <group ns="groot">
+	 		<!-- Load joint controller configurations from YAML file to parameter server -->
+	  	<rosparam file="$(find autonomous_mindstoms)/config/color.yaml" command="load"/>
+
+	  	<!-- load the controllers -->
+	  	<node name="ev3_sensor_spawner_color" pkg="controller_manager" type="spawner" respawn="true"
+	    output="screen" args="Ev3Color Ev3Color2"/>
+	</group>	  	
+</launch>
+ 
