@@ -17,35 +17,49 @@ rightTouchedBlue = 0
 def handle_left_color_sensor(msg):
     global leftTouched
     global leftTouchedBlue
-    if msg.r < 0.1 & msg.g < 0.1 & msg.b < 0.1:
+    if msg.r < 9.0 and msg.g < 9.0 and msg.b < 9.0:
+        rospy.loginfo("Left Color Sensor untiefe detected")
+    elif msg.r < 25.0 and msg.g < 25.0 and msg.b < 25.0:
         # Drive left
         leftTouched = 1
         #Black detected
         rospy.loginfo("Left Color Sensor Black detected")
-    elif msg.r < 0.1 & msg.g < 0.1 & msg.b < 0.7:
+    elif msg.r > 100.0 and msg.g > 100.0 and msg.b > 100.0:
+        # Drive left
+        leftTouched = 0
+        leftTouchedBlue = 0
+        rospy.loginfo("Left Color Sensor White detected")
+    elif msg.r > 40.0 and msg.g > 60.0 and msg.b > 75.0:
         leftTouchedBlue = 1
         # Blue detected
         rospy.loginfo("Left Color Sensor Blue detected")
     else:
-        #Drive left
-        leftTouched = 0
-        leftTouchedBlue = 0
+        rospy.loginfo("Left Color Sensor different color detected")
+    drive()
+
 
 def handle_right_color_sensor(msg):
     global rightTouched
     global rightTouchedBlue
-    if msg.r < 0.1 & msg.g < 0.1 & msg.b < 0.1:
+    if msg.r < 9.0 and msg.g < 9.0 and msg.b < 9.0:
+        rospy.loginfo("Right Color Sensor untiefe detected")
+    elif msg.r < 25.0 and msg.g < 25.0 and msg.b < 25.0:
         rightTouched = 1
         # Black detected
         rospy.loginfo("Right Color Sensor Black detected")
-    elif msg.r < 0.1 & msg.g < 0.1 & msg.b < 0.7:
+    elif msg.r > 100.0 and msg.g > 100.0 and msg.b > 100.0:
+        # Drive forward
+        rightTouched = 0
+        rightTouchedBlue = 0
+        rospy.loginfo("Right Color Sensor White detected")
+    elif msg.r > 40.0 and msg.g > 60.0 and msg.b > 75.0:
         rightTouchedBlue = 1
         # Blue detected
         rospy.loginfo("Right Color Sensor Blue detected")
     else:
-        #Drive right
-        rightTouched = 0
-        rightTouchedBlue = 0
+        rospy.loginfo("Right Color Sensor different color detected")
+    drive()
+
 
 def drive():
     global rightTouched, leftTouched
@@ -56,14 +70,14 @@ def drive():
         vel_msg.angular.x = 0
         vel_msg.linear.x = 0
     elif rightTouched:
-        vel_msg.angular.x = 0.1
-        vel_msg.linear.x = 1.0
+        vel_msg.angular.x = 1
+        vel_msg.linear.x = 10.0
     elif leftTouched:
-        vel_msg.angular.x = -0.1
-        vel_msg.linear.x = 1
+        vel_msg.angular.x = -1
+        vel_msg.linear.x = 10
 
     #Publish the message
-    rospy.Publisher("/groot/diffDrv/cmd_vel", vel_msg)
+    pub.publish(vel_msg)
 
 
 if __name__ == "__main__":
@@ -71,17 +85,16 @@ if __name__ == "__main__":
     rospy.init_node("robot_controller")
     rospy.loginfo("Robot Controller Server node created")
 
-    rospy.wait_for_service("/touch")
-    rospy.wait_for_service("/ir...") #Edit
+    pub = rospy.Publisher("/groot/diffDrv/cmd_vel", Twist, queue_size=10)
 
-    leftColorSensor = rospy.Subscriber("/color_left", ColorRGBA, handle_left_color_sensor, queue_size=queue_size_int)
-    rightColorSensor = rospy.Subscriber("/color_right", ColorRGBA, handle_right_color_sensor, queue_size=queue_size_int)
+    leftColorSensor = rospy.Subscriber("/color_left", ColorRGBA, handle_left_color_sensor, queue_size=10)
+    rightColorSensor = rospy.Subscriber("/color_right", ColorRGBA, handle_right_color_sensor, queue_size=10)
 
-    rightColorSensor = rospy.Service("/touch", ColorRGBA, handle_right_color_sensor)
+    #touchSensor = rospy.Service("/touch", ColorRGBA, handle_right_color_sensor)
 
     #Edit
-    rightColorSensor = rospy.Service("/ir...", ColorRGBA, handle_right_color_sensor)
+    #infraRedSensor = rospy.Service("/ir...", ColorRGBA, handle_right_color_sensor)
 
-    rospy.loginfo("Service server has been started")
+    rospy.loginfo("Subscribers has been started")
 
     rospy.spin()

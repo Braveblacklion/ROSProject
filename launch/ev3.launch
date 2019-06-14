@@ -5,12 +5,11 @@
 	 		<!-- Load joint controller configurations from YAML file to parameter server -->
 	  	<rosparam file="$(find autonomous_mindstoms)/config/color.yaml" command="load"/>
 	  	<rosparam file="$(find autonomous_mindstoms)/config/touch.yaml" command="load"/>
-	  	<rosparam file="$(find autonomous_mindstoms)/config/infrared.yaml" command="load"/>
 	  	<rosparam file="$(find autonomous_mindstoms)/config/motors.yaml" command="load"/>
 
 	  	<!-- load the controllers -->
-	    <node name="ev3_sensor_spawner" pkg="controller_manager" type="spawner" respawn="true"
-	    output="screen" args="Ev3Color Ev3Color2 Ev3Touch Ev3Infrared OutPortState OutPortA OutPortD diffDrv"/>
+	    <node name="ev3_sensor_spawner" pkg="controller_manager" type="spawner" respawn="false"
+	    output="screen" args="Ev3Color Ev3Color2 Ev3Touch OutPortA"/>
 
 	</group>
 </launch>
