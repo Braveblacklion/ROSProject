@@ -7,7 +7,7 @@
 
 	  	<!-- load the controllers -->
 	    <node name="ev3_sensor_spawner" pkg="controller_manager" type="spawner" respawn="false"
-	    output="screen" args="Ev3ColorLeft Ev3ColorRight Ev3Touch OutPortState diffDrv"/>
+	    output="screen" args="Ev3ColorLeft Ev3ColorRight Ev3Touch OutPortState OutPortA diffDrv"/>
 
 	</group>
 </launch>
