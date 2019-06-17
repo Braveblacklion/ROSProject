@@ -5,7 +5,7 @@
 
 	  	<!-- load the controllers -->
 	  	<node name="ev3_sensor_spawner_color" pkg="controller_manager" type="spawner" respawn="true"
-	    output="screen" args="Ev3Color Ev3Color2"/>
+	    output="screen" args="Ev3ColorLeft Ev3ColorRight"/>
 	</group>	  	
 </launch>
  

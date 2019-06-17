@@ -1,17 +1,17 @@
-Ev3Color:
+Ev3ColorLeft:
   type: h4r_ev3_control/Ev3ColorController
-  frame_id: color_link
+  frame_id: color_link_left
   topic_name: /color_left
   publish_rate: 10
-  port: in3
+  port: in4
   mode: rgb_raw
 
-Ev3Color2:
+Ev3ColorRight:
   type: h4r_ev3_control/Ev3ColorController
-  frame_id: color_link
+  frame_id: color_link_right
   topic_name: /color_right
   publish_rate: 10
-  port: in4
+  port: in3
   mode: rgb_raw
 
   #Mode:
