@@ -6,77 +6,50 @@ from std_srvs.srv import SetBool
 from geometry_msgs.msg import Twist
 from std_msgs.msg import UInt8
 
+############################# Colors
+untiefe = 0  # 0 none
+black = 1    # 1   black
+blue = 2     # 2   blue
+green = 3    # 3   green
+yellow = 4   # 4   yellow
+red = 5      # 5   red
+white = 6    # 6   white
+brown = 7    # 7   brown
+#####################################
+
+########################## Directions
+left = -1
+straight = 0
+right = 1
+#####################################
+
+# Save the data of the sensors to
+leftColor = 1
+rightColor = 1
+
 # Direction -1 = Left, 0 = Forward, 1 = right
-leftTouched = 0
-leftTouchedBlue = 0
-rightTouched = 0
-rightTouchedBlue = 0
-savedDirection = -1 # 1 For right -1 for left
-savedSpeed = 0 # Saved speed
+savedDirection = 0
+
+# Saved speed
+savedSpeed = 0
+
+#Picking up Mode
 isPickingUp = False
 blueCounter = 0
 isFinished = False
 ausgerichtet = False
-isSearching = False
 
 
 def handle_left_color_sensor(msg):
-    global leftTouched
-    global leftTouchedBlue
-    if msg.data == 0:
-        rospy.loginfo("Left Color Sensor untiefe detected")
-        leftTouchedBlue = 0
-        leftTouched = 0
-        return
-    elif msg.data == 1:
-        # Drive left
-        leftTouched = 1
-        leftTouchedBlue = 0
-        #Black detected
-        rospy.loginfo("Left Color Sensor Black detected")
-    elif msg.data == 6 or msg.data == 4:
-        # Drive left
-        leftTouched = 0
-        leftTouchedBlue = 0
-        rospy.loginfo("Left Color Sensor White detected")
-    elif msg.data == 2:
-        leftTouchedBlue = 1
-        leftTouched = 0
-        # Blue detected
-        rospy.loginfo("Left Color Sensor Blue detected")
-    else:
-        leftTouched = 1
-        leftTouchedBlue = 0
-        rospy.loginfo("Left Color Sensor different color detected: " + str(msg.data))
+    global leftColor
+    leftColor = msg.data
+    rospy.loginfo("Left Color Sensor color: " + leftColor)
 
 
 def handle_right_color_sensor(msg):
-    global rightTouched
-    global rightTouchedBlue
-    if msg.data == 0:
-        rospy.loginfo("Right Color Sensor untiefe detected")
-        rightTouchedBlue = 0
-        rightTouched = 0
-        return
-    elif msg.data == 1:
-        rightTouched = 1
-        rightTouchedBlue = 0
-        # Black detected
-        rospy.loginfo("Right Color Sensor Black detected")
-    elif msg.data == 6 or msg.data == 4:
-        # Drive forward
-        rightTouched = 0
-        rightTouchedBlue = 0
-        rospy.loginfo("Right Color Sensor White detected")
-    elif msg.data == 2:
-        rightTouchedBlue = 1
-        rightTouched = 0
-        # Blue detected
-        rospy.loginfo("Right Color Sensor Blue detected")
-    else:
-        rightTouched = 1
-        rightTouchedBlue = 0
-        rospy.loginfo("Right Color Sensor different color detected" + str(msg))
+    global rightColor
+    rightColor = msg.data
+    rospy.loginfo("Left Color Sensor color: " + rightColor)
     drive()
 
 
@@ -88,35 +61,39 @@ def drive():
     global isLeftTurnFalse
 
     vel_msg = Twist()
-    if rightTouchedBlue and leftTouchedBlue:
+    if rightColor == blue and leftColor == blue:
         pickUp()
         return
     elif isPickingUp:
         pickUp()
         return
-    elif rightTouched == 1 and leftTouched == 1:
+    elif rightColor == black and leftColor == black:
         # Abgrund? --> STOP
         vel_msg.linear.x = savedSpeed
         vel_msg.angular.z = savedDirection
         rospy.loginfo("Drive: STOP!")
-    elif rightTouched == 1:
+    elif rightColor == black:
         vel_msg.linear.x = 0.1
         vel_msg.angular.z = -0.5
-        savedSpeed = 0
+
+        savedSpeed = 0.1
         savedDirection = -0.5
         rospy.loginfo("Drive: RIGHT!")
-    elif leftTouched == 1:
+    elif leftColor == black:
         vel_msg.linear.x = 0.1
         vel_msg.angular.z = 0.5
-        savedSpeed = 0
+
+        savedSpeed = 0.1
         savedDirection = 0.5
         rospy.loginfo("Drive: LEFT!")
     else:
         vel_msg.linear.x = 0.5
         vel_msg.angular.z = 0
+
         savedSpeed = 0.5
         savedDirection = 0
 
+    # Reset counter
     blueCounter = 0
     isFinished = False
     isLeftTurnFalse = False
@@ -129,72 +106,85 @@ def pickUp():
     global savedDirection
     global blueCounter
     global isFinished
-    global rightTouchedBlue
-    global leftTouchedBlue
-    global leftTouched
-    global rightTouched
+    global leftColor
+    global rightColor
     global ausgerichtet
     global isPickingUp
-    global isSearching
 
-    isPickingUp = True
+    blueCounter += 1
+
+    # To be sure that the robot realy is on blue not just an error
+    if blueCounter >= 3:
+        isPickingUp = True
+    else:
+        return
 
     vel_msg = Twist()
     if isFinished:
         rospy.loginfo("Finished!!!")
         isPickingUp = False
-        savedDirection
         return
     # if rightTouchedBlue and leftTouchedBlue:
     if not ausgerichtet:
-        if rightTouchedBlue and leftTouchedBlue:
+        if rightColor == blue and leftColor == blue:
             # Dive a bit forward
             vel_msg.linear.x = 0.1
             vel_msg.angular.z = 0.0
-        elif not rightTouchedBlue or not leftTouchedBlue:
+        elif rightColor == white and leftColor == white:
             vel_msg.linear.x = -0.5
             vel_msg.angular.z = 0.0
             for x in xrange(3):
                 pub.publish(vel_msg)
+            savedDirection = left
             ausgerichtet = True
             return
-        elif not rightTouchedBlue and leftTouchedBlue:
-            # Drive a bit right
-            test = 123
-        elif rightTouched or leftTouched:
+        elif rightColor == blue and leftColor == white:
+            # Turn right
+            vel_msg.linear.x = 0.0
+            vel_msg.angular.z = -0.2
+        elif leftColor == blue and rightColor == white:
+            # Turn left
+            vel_msg.linear.x = 0.0
+            vel_msg.angular.z = 0.2
+        elif rightColor == black or leftColor == black:
             # Seems to entered this mode wrongly
             ausgerichtet = False
             isPickingUp = False
-            isLeftTurnFalse = False
         else:
+            rospy.loginfo("Right color: " + str(rightColor) + "and Left Color: " + str(leftColor))
             return
         pub.publish(vel_msg)
         return
 
-    if savedDirection == -1 and not rightTouched and not leftTouched and rightTouchedBlue:
+    if savedDirection == 0:
+        # If savedDirection not set
+        savedDirection = left
+
+    if savedDirection == left and not leftColor == black and rightColor == blue:
+        # Search left
         vel_msg.linear.x = 0.0
         vel_msg.angular.z = 0.5
-        isSearching = True
         savedDirection = -1  # Save direction = left
-    elif savedDirection == 1 and not rightTouched and not leftTouched and leftTouchedBlue:
+    elif savedDirection == right and not rightColor == black and leftColor == blue:
+        # Turn right
         vel_msg.linear.x = 0.0
         vel_msg.angular.z = -0.5
-        isSearching = True# Save direction = right
-    elif rightTouched or leftTouched:
+    elif rightColor == black or leftColor == black:
         rospy.loginfo("Saved direction = " + str(savedDirection))
         ausgerichtet = False
         isPickingUp = False
         isFinished = True
-        isSearching = False
-    elif not rightTouched and not leftTouched and not isSearching:
-        vel_msg.linear.x = -0.1
-        vel_msg.angular.z = 0.0
-    else:
-        vel_msg.linear.x = -0.0
+        # Reset counter
+        blueCounter = 0
+        return
+    elif leftColor == white :
+        # Nothing found so Turn right now
+        savedDirection = right
+        vel_msg.linear.x = 0.0
         vel_msg.angular.z = -0.5
-        savedDirection = 1
-        rospy.loginfo("In else")
-        isLeftTurnFalse = True
+    else:
+        # Search right
+        rospy.loginfo("Oooooops In else")
         # Wrong direction go back and try again
 
     # Publish the message
