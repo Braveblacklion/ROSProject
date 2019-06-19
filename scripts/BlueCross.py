@@ -43,13 +43,13 @@ ausgerichtet = False
 def handle_left_color_sensor(msg):
     global leftColor
     leftColor = msg.data
-    rospy.loginfo("Left Color Sensor color: " + leftColor)
+    # rospy.loginfo("Left Color Sensor color: " + str(leftColor))
 
 
 def handle_right_color_sensor(msg):
     global rightColor
     rightColor = msg.data
-    rospy.loginfo("Left Color Sensor color: " + rightColor)
+    # rospy.loginfo("Left Color Sensor color: " + str(rightColor))
     drive()
 
 
@@ -61,6 +61,8 @@ def drive():
     global isLeftTurnFalse
 
     vel_msg = Twist()
+    if rightColor == 0 or leftColor == 0:
+        return
     if rightColor == blue and leftColor == blue:
         pickUp()
         return
@@ -110,39 +112,44 @@ def pickUp():
     global rightColor
     global ausgerichtet
     global isPickingUp
+    global left
+    global right
+    global straight
+
+    vel_msg = Twist()
 
     blueCounter += 1
 
-    # To be sure that the robot realy is on blue not just an error
-    if blueCounter >= 3:
+    if blueCounter > 2:
         isPickingUp = True
     else:
         return
 
-    vel_msg = Twist()
-    if isFinished:
-        rospy.loginfo("Finished!!!")
-        isPickingUp = False
-        return
     # if rightTouchedBlue and leftTouchedBlue:
     if not ausgerichtet:
+        if rightColor == untiefe and leftColor == untiefe:
+            isPickingUp = False
+            ausgerichtet = False
+            return
         if rightColor == blue and leftColor == blue:
             # Dive a bit forward
             vel_msg.linear.x = 0.1
             vel_msg.angular.z = 0.0
-        elif rightColor == white and leftColor == white:
+        elif (rightColor == white or rightColor == yellow) and (leftColor == white or leftColor == yellow):
+            # Dirve backwards
             vel_msg.linear.x = -0.5
             vel_msg.angular.z = 0.0
-            for x in xrange(3):
+            for x in xrange(40):
                 pub.publish(vel_msg)
             savedDirection = left
             ausgerichtet = True
+            rospy.sleep(2)
             return
-        elif rightColor == blue and leftColor == white:
+        elif rightColor == blue and (leftColor == white or leftColor == yellow) :
             # Turn right
             vel_msg.linear.x = 0.0
             vel_msg.angular.z = -0.2
-        elif leftColor == blue and rightColor == white:
+        elif leftColor == blue and (rightColor == white or rightColor == yellow):
             # Turn left
             vel_msg.linear.x = 0.0
             vel_msg.angular.z = 0.2
@@ -156,7 +163,7 @@ def pickUp():
         pub.publish(vel_msg)
         return
 
-    if savedDirection == 0:
+    if savedDirection == straight:
         # If savedDirection not set
         savedDirection = left
 
@@ -177,7 +184,7 @@ def pickUp():
         # Reset counter
         blueCounter = 0
         return
-    elif leftColor == white :
+    elif (leftColor == white or leftColor == yellow) and rightColor == blue:
         # Nothing found so Turn right now
         savedDirection = right
         vel_msg.linear.x = 0.0
