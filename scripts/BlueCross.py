@@ -50,7 +50,6 @@ def handle_left_color_sensor(msg):
         rospy.loginfo("Left Color Sensor different color detected: " + str(msg.data))
 
 
-
 def handle_right_color_sensor(msg):
     global rightTouched
     global rightTouchedBlue
@@ -159,6 +158,9 @@ def pickUp():
                 pub.publish(vel_msg)
             ausgerichtet = True
             return
+        elif not rightTouchedBlue and leftTouchedBlue:
+            # Drive a bit right
+            test = 123
         elif rightTouched or leftTouched:
             # Seems to entered this mode wrongly
             ausgerichtet = False
