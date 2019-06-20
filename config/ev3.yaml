@@ -1,6 +1,6 @@
 Ev3ColorLeft:
   type: h4r_ev3_control/Ev3ColorController
-  frame_id: color_link_left
+  frame_id: color_link
   topic_name: /groot/color_left
   publish_rate: 10
   port: in4
@@ -8,7 +8,7 @@ Ev3ColorLeft:
 
 Ev3ColorRight:
   type: h4r_ev3_control/Ev3ColorController
-  frame_id: color_link_right
+  frame_id: color_link
   topic_name: /groot/color_right
   publish_rate: 10
   port: in3
@@ -23,16 +23,16 @@ Ev3Touch:
 
 Ev3devJoints:
   Joint_A:
-    speed_pid: [1000, 60 , 0]
+    speed_pid: [1001, 61 , 1]
     mode: velocity
   Joint_B:
-    speed_pid: [1000, 60, 0]
+    speed_pid: [1002, 62, 2]
     mode: velocity
   Joint_C:
-    speed_pid: [1000 , 60, 0]
+    speed_pid: [1003 , 63, 3]
     mode: velocity
   Joint_D:
-    speed_pid: [1000 , 60, 0]
+    speed_pid: [1004 , 64, 4]
     mode: velocity
 
 # Publish all joint states -----------------------------------

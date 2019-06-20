@@ -28,6 +28,7 @@ leftColor = 1
 rightColor = 1
 
 # Direction -1 = Left, 0 = Forward, 1 = right
+temporaryDirection = 1
 savedDirection = 0
 
 # Saved speed
@@ -43,18 +44,18 @@ ausgerichtet = False
 def handle_left_color_sensor(msg):
     global leftColor
     leftColor = msg.data
-    # rospy.loginfo("Left Color Sensor color: " + str(leftColor))
+    rospy.loginfo("Left Color Sensor color: " + str(leftColor))
 
 
 def handle_right_color_sensor(msg):
     global rightColor
     rightColor = msg.data
-    # rospy.loginfo("Left Color Sensor color: " + str(rightColor))
     drive()
+    rospy.loginfo("Right Color Sensor color: " + str(rightColor))
 
 
 def drive():
-    global savedDirection
+    global temporaryDirection
     global savedSpeed
     global blueCounter
     global isFinished
@@ -72,7 +73,12 @@ def drive():
     elif rightColor == black and leftColor == black:
         # Abgrund? --> STOP
         vel_msg.linear.x = savedSpeed
-        vel_msg.angular.z = savedDirection
+        vel_msg.angular.z = temporaryDirection
+        rospy.loginfo("Drive: STOP!")
+    elif rightColor == black and leftColor == black:
+        # Abgrund? --> STOP
+        vel_msg.linear.x = savedSpeed
+        vel_msg.angular.z = temporaryDirection
         rospy.loginfo("Drive: STOP!")
     elif rightColor == black:
         vel_msg.linear.x = 0.1
@@ -99,7 +105,6 @@ def drive():
     blueCounter = 0
     isFinished = False
     isLeftTurnFalse = False
-    savedDirection = -1
     # Publish the message
     pub.publish(vel_msg)
 
@@ -117,12 +122,12 @@ def pickUp():
     global straight
 
     vel_msg = Twist()
-
     blueCounter += 1
 
-    if blueCounter > 2:
+    if blueCounter >= 2:
         isPickingUp = True
     else:
+        isPickingUp = False
         return
 
     # if rightTouchedBlue and leftTouchedBlue:
@@ -139,7 +144,7 @@ def pickUp():
             # Dirve backwards
             vel_msg.linear.x = -0.5
             vel_msg.angular.z = 0.0
-            for x in xrange(40):
+            for x in xrange(30):
                 pub.publish(vel_msg)
             savedDirection = left
             ausgerichtet = True
@@ -157,15 +162,12 @@ def pickUp():
             # Seems to entered this mode wrongly
             ausgerichtet = False
             isPickingUp = False
+            drive()
         else:
             rospy.loginfo("Right color: " + str(rightColor) + "and Left Color: " + str(leftColor))
             return
         pub.publish(vel_msg)
         return
-
-    if savedDirection == straight:
-        # If savedDirection not set
-        savedDirection = left
 
     if savedDirection == left and not leftColor == black and rightColor == blue:
         # Search left
@@ -189,9 +191,12 @@ def pickUp():
         savedDirection = right
         vel_msg.linear.x = 0.0
         vel_msg.angular.z = -0.5
+    elif (leftColor == white or leftColor == yellow) and (rightColor == white or rightColor == yellow):
+        savedDirection = right
+        vel_msg.linear.x = 0.0
+        vel_msg.angular.z = savedDirection * -0.5
     else:
-        # Search right
-        rospy.loginfo("Oooooops In else")
+        rospy.loginfo("Oooooops In else: " + "Right color: " + str(rightColor) + "and Left Color: " + str(leftColor))
         # Wrong direction go back and try again
 
     # Publish the message
