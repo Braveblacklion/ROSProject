@@ -29,7 +29,7 @@ rightColor = 1
 
 # Direction -1 = Left, 0 = Forward, 1 = right
 temporaryDirection = 1
-savedDirection = 0
+savedDirection = Left
 kurva = False
 
 # Saved speed
@@ -40,6 +40,7 @@ isPickingUp = False
 blueCounter = 0
 isFinished = False
 ausgerichtet = False
+blackCounter = 0
 
 
 def handle_left_color_sensor(msg):
@@ -79,7 +80,6 @@ def drive():
     elif leftColor == black:
         vel_msg.linear.x = 0.1
         vel_msg.angular.z = 0.5
-
         kurva = True
         rospy.loginfo("Drive: LEFT!")
     else:
@@ -106,7 +106,7 @@ def pickUp():
     global left
     global right
     global straight
-
+    global blackCounter
     vel_msg = Twist()
     blueCounter += 1
 
@@ -124,28 +124,25 @@ def pickUp():
             ausgerichtet = False
             return
 
-
-
-
-
         if rightColor == blue and leftColor == blue:
-            # Dive a bit forward
-            vel_msg.linear.x = 0.1
+            # Dive a bit backward
+            vel_msg.linear.x = -0.1
             vel_msg.angular.z = 0.0
         elif (rightColor == white or rightColor == yellow) and (leftColor == white or leftColor == yellow):
-            # Dirve backwards
-            vel_msg.linear.x = -0.5
-            vel_msg.angular.z = 0.0
+            # Drive right/left
+            vel_msg.linear.x = 0.0
+            vel_msg.angular.z = 0.5
             for x in xrange(30):
                 pub.publish(vel_msg)
             savedDirection = left
             ausgerichtet = True
             rospy.sleep(2)
             return
+        #1. richtung anerkannt, wie geht es weiter? gas gradeaus! mit black check
         elif rightColor == blue and (leftColor == white or leftColor == yellow) :
             # Turn right
             vel_msg.linear.x = 0.0
-            vel_msg.angular.z = -0.2
+            vel_msg.angular.z = -0.2 # anpassen, nach richtung robot, derzeitig laut pol
         elif leftColor == blue and (rightColor == white or rightColor == yellow):
             # Turn left
             vel_msg.linear.x = 0.0
@@ -161,15 +158,31 @@ def pickUp():
         pub.publish(vel_msg)
         return
 
-    if savedDirection == left and not leftColor == black and rightColor == blue:
+    #ausgerichtet ist ok, -|- robot unter blaues kreuz nun gas, wenn error, dann spass
+
+
+    if savedDirection == left and not (leftColor == black or rightColor == black):
         # Search left
-        vel_msg.linear.x = 0.0
-        vel_msg.angular.z = 0.5
-        savedDirection = -1  # Save direction = left
-    elif savedDirection == right and not rightColor == black and leftColor == blue:
+        vel_msg.linear.x = 0.4
+        vel_msg.angular.z = 0.0
+        blackCounter +=1
+        if blackCounter > 80:
+            savedDirection = right  # Save direction = left
+                             # spaeter: reboot robot to start (rückwärts fahren)
+    elif savedDirection == right and not (leftColor == black or rightColor == black):
         # Turn right
-        vel_msg.linear.x = 0.0
-        vel_msg.angular.z = -0.5
+        if blackCounter > 0:
+            vel_msg.linear.x = -0.4
+            vel_msg.angular.z = 0.0
+            blackCounter -=1
+        elif blackCounter == 0:
+            vel_msg.linear.x = 0.0
+            vel_msg.angular.z = -0.5 #dreh in die andere richtung
+            for x in xrange(60):
+                pub.publish(vel_msg)
+        elif blackCounter == 0:
+            vel_msg.linear.x = 0.4
+            vel_msg.angular.z = 0.0
     elif rightColor == black or leftColor == black:
         rospy.loginfo("Saved direction = " + str(savedDirection))
         ausgerichtet = False
@@ -178,15 +191,6 @@ def pickUp():
         # Reset counter
         blueCounter = 0
         return
-    elif (leftColor == white or leftColor == yellow) and rightColor == blue:
-        # Nothing found so Turn right now
-        savedDirection = right
-        vel_msg.linear.x = 0.0
-        vel_msg.angular.z = -0.5
-    elif (leftColor == white or leftColor == yellow) and (rightColor == white or rightColor == yellow):
-        savedDirection = right
-        vel_msg.linear.x = 0.0
-        vel_msg.angular.z = savedDirection * -0.5
     else:
         rospy.loginfo("Oooooops In else: " + "Right color: " + str(rightColor) + "and Left Color: " + str(leftColor))
         # Wrong direction go back and try again
