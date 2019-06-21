@@ -28,8 +28,11 @@ leftColor = 1
 rightColor = 1
 
 # Direction -1 = Left, 0 = Forward, 1 = right
-temporaryDirection = 1
-savedDirection = 0
+savedDirection = 1
+
+hasSearchedRight = False
+hasSearchedLeft = False
+isTurning = False
 
 # Saved speed
 savedSpeed = 0
@@ -112,7 +115,6 @@ def drive():
 def pickUp():
     global savedDirection
     global blueCounter
-    global isFinished
     global leftColor
     global rightColor
     global ausgerichtet
@@ -120,6 +122,9 @@ def pickUp():
     global left
     global right
     global straight
+    global hasSearchedRight
+    global hasSearchedLeft
+    global isTurning
 
     vel_msg = Twist()
     blueCounter += 1
@@ -130,76 +135,155 @@ def pickUp():
         isPickingUp = False
         return
 
-    # if rightTouchedBlue and leftTouchedBlue:
     if not ausgerichtet:
-        if rightColor == untiefe and leftColor == untiefe:
-            isPickingUp = False
-            ausgerichtet = False
-            return
-        if rightColor == blue and leftColor == blue:
-            # Dive a bit forward
-            vel_msg.linear.x = 0.1
-            vel_msg.angular.z = 0.0
-        elif (rightColor == white or rightColor == yellow) and (leftColor == white or leftColor == yellow):
-            # Dirve backwards
-            vel_msg.linear.x = -0.5
-            vel_msg.angular.z = 0.0
-            for x in xrange(30):
-                pub.publish(vel_msg)
-            savedDirection = left
-            ausgerichtet = True
-            rospy.sleep(2)
-            return
-        elif rightColor == blue and (leftColor == white or leftColor == yellow) :
-            # Turn right
-            vel_msg.linear.x = 0.0
-            vel_msg.angular.z = -0.2
-        elif leftColor == blue and (rightColor == white or rightColor == yellow):
-            # Turn left
-            vel_msg.linear.x = 0.0
-            vel_msg.angular.z = 0.2
-        elif rightColor == black or leftColor == black:
-            # Seems to entered this mode wrongly
-            ausgerichtet = False
-            isPickingUp = False
-            drive()
-        else:
-            rospy.loginfo("Right color: " + str(rightColor) + "and Left Color: " + str(leftColor))
-            return
-        pub.publish(vel_msg)
+        ausrichten()
         return
 
-    if savedDirection == left and not leftColor == black and rightColor == blue:
-        # Search left
-        vel_msg.linear.x = 0.0
-        vel_msg.angular.z = 0.5
-        savedDirection = -1  # Save direction = left
-    elif savedDirection == right and not rightColor == black and leftColor == blue:
+
+    # Searching Algorithmus
+    if savedDirection == right:
+        if isTurning:
+            turnBack()
+        elif not hasSearchedRight:
+            searchRight()
+        elif not hasSearchedLeft:
+            searchLeft()
+        else:
+            isPickingUp = False
+            rospy.logerr("No Black Found!")
+    elif savedDirection == left:
+        if isTurning:
+            turnBack()
+        elif not hasSearchedLeft:
+            searchLeft()
+        elif not hasSearchedRight:
+            searchRight()
+        else:
+            isPickingUp = False
+            rospy.logerr("No Black Found!")
+
+
+# Drive the ev3 to the most optimal position possible
+def ausrichten():
+    global ausgerichtet
+    global isPickingUp
+
+    vel_msg = Twist()
+    if rightColor == untiefe and leftColor == untiefe:
+        isPickingUp = False
+        ausgerichtet = False
+        return
+    if rightColor == blue and leftColor == blue:
+        # Dive a bit forward
+        vel_msg.linear.x = 0.1
+        vel_msg.angular.z = 0.0
+    elif (rightColor == white or rightColor == yellow) and (leftColor == white or leftColor == yellow):
+        # Dirve backwards
+        vel_msg.linear.x = -0.5
+        vel_msg.angular.z = 0.0
+        for x in xrange(70):
+            pub.publish(vel_msg)
+        ausgerichtet = True
+        rospy.sleep(2)
+        return
+    elif rightColor == blue and (leftColor == white or leftColor == yellow):
         # Turn right
         vel_msg.linear.x = 0.0
-        vel_msg.angular.z = -0.5
+        vel_msg.angular.z = -0.2
+    elif leftColor == blue and (rightColor == white or rightColor == yellow):
+        # Turn left
+        vel_msg.linear.x = 0.0
+        vel_msg.angular.z = 0.2
     elif rightColor == black or leftColor == black:
-        rospy.loginfo("Saved direction = " + str(savedDirection))
+        # Seems to entered this mode wrongly
         ausgerichtet = False
         isPickingUp = False
-        isFinished = True
-        # Reset counter
-        blueCounter = 0
-        return
-    elif (leftColor == white or leftColor == yellow) and rightColor == blue:
-        # Nothing found so Turn right now
-        savedDirection = right
-        vel_msg.linear.x = 0.0
-        vel_msg.angular.z = -0.5
-    elif (leftColor == white or leftColor == yellow) and (rightColor == white or rightColor == yellow):
-        savedDirection = right
-        vel_msg.linear.x = 0.0
-        vel_msg.angular.z = savedDirection * -0.5
+        drive()
     else:
-        rospy.loginfo("Oooooops In else: " + "Right color: " + str(rightColor) + "and Left Color: " + str(leftColor))
-        # Wrong direction go back and try again
+        rospy.loginfo("Right color: " + str(rightColor) + "and Left Color: " + str(leftColor))
+    pub.publish(vel_msg)
 
-    # Publish the message
+
+def searchLeft():
+    global hasSearchedRight
+    global hasSearchedLeft
+    global isPickingUp
+    global savedDirection
+    global isTurning
+
+    vel_msg = Twist()
+
+    if rightColor == blue:
+        # Turn left
+        vel_msg.linear.x = 0.0
+        vel_msg.angular.z = 0.3
+    elif rightColor == white and leftColor == white:
+        hasSearchedLeft = True
+        isTurning = True
+        return
+    elif leftColor == black or rightColor == black:
+        isPickingUp = False
+        hasSearchedLeft= False
+        hasSearchedRight = False
+        savedDirection = left
+
+    pub.publish(vel_msg)
+
+
+def searchRight():
+    global hasSearchedRight
+    global hasSearchedLeft
+    global isTurning
+    global isPickingUp
+    global left
+    global savedDirection
+
+    vel_msg = Twist()
+
+    if leftColor == blue:
+        # Turn left
+        vel_msg.linear.x = 0.0
+        vel_msg.angular.z = -0.3
+    elif rightColor == white and leftColor == white:
+        hasSearchedRight = True
+        isTurning = True
+        return
+    elif rightColor == black or leftColor == black:
+        isPickingUp = False
+        hasSearchedLeft= False
+        hasSearchedRight = False
+        savedDirection = right
+        return
+    pub.publish(vel_msg)
+
+
+def turnBack():
+    global rightColor
+    global leftColor
+    global hasSearchedRight
+    global hasSearchedLeft
+    global isTurning
+    global isPickingUp
+    global ausgerichtet
+
+    vel_msg = Twist()
+
+    if hasSearchedLeft and hasSearchedRight:
+        rospy.logerr("Has searched in both direction but no black found")
+        return
+
+    if rightColor != blue:
+            # Turn left
+            vel_msg.linear.x = 0.0
+            vel_msg.angular.z = 0.3
+    elif leftColor != blue:
+            # Turn right
+            vel_msg.linear.x = 0.0
+            vel_msg.angular.z = -0.3
+    elif leftColor == blue or rightColor == blue:
+        ausgerichtet = False
+        isTurning = False
+
     pub.publish(vel_msg)
 
 
