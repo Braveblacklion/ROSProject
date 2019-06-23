@@ -128,7 +128,7 @@ def pickUp():
     vel_msg = Twist()
     blueCounter += 1
 
-    if blueCounter >= 2 or isPickingUp == True:
+    if blueCounter >= 2 or isPickingUp:
         isPickingUp = True
         blueCounter = 0
     else:
@@ -162,11 +162,11 @@ def pickUp():
         elif rightColor == blue and (leftColor == white or leftColor == yellow) :
             # Turn right
             vel_msg.linear.x = 0.0
-            vel_msg.angular.z = 0.2 # anpassen, nach richtung robot, changed for on white instead of blue
+            vel_msg.angular.z = -0.2 # anpassen, nach richtung robot, changed for on white instead of blue
         elif leftColor == blue and (rightColor == white or rightColor == yellow):
             # Turn left
             vel_msg.linear.x = 0.0
-            vel_msg.angular.z = -0.2
+            vel_msg.angular.z = 0.2
         elif rightColor == black or leftColor == black:
             # Seems to entered this mode wrongly
             ausgerichtet = False
