@@ -28,9 +28,10 @@ leftColor = 1
 rightColor = 1
 
 # Direction -1 = Left, 0 = Forward, 1 = right
+# changed som variables
 temporaryDirection = 1
-savedDirection = Left
-kurva = False
+savedDirection = left
+saveDriveback = True
 
 # Saved speed
 savedSpeed = 0
@@ -62,7 +63,6 @@ def drive():
     global blueCounter
     global isFinished
     global isLeftTurnFalse
-    global kurva
 
     vel_msg = Twist()
     if rightColor == 0 or leftColor == 0:
@@ -73,19 +73,36 @@ def drive():
     elif isPickingUp:
         pickUp()
         return
-    elif rightColor == black and kurva == False:
+    elif rightColor == black and leftColor == black:
+        # Abgrund? --> STOP
+        vel_msg.linear.x = savedSpeed
+        vel_msg.angular.z = temporaryDirection
+        rospy.loginfo("Drive: STOP!")
+    elif rightColor == black and leftColor == black:
+        # Abgrund? --> STOP
+        vel_msg.linear.x = savedSpeed
+        vel_msg.angular.z = temporaryDirection
+        rospy.loginfo("Drive: STOP!")
+    elif rightColor == black:
         vel_msg.linear.x = 0.1
         vel_msg.angular.z = -0.5
+
+        savedSpeed = 0.1
+        savedDirection = -0.5
         rospy.loginfo("Drive: RIGHT!")
     elif leftColor == black:
         vel_msg.linear.x = 0.1
         vel_msg.angular.z = 0.5
-        kurva = True
+
+        savedSpeed = 0.1
+        savedDirection = 0.5
         rospy.loginfo("Drive: LEFT!")
     else:
         vel_msg.linear.x = 0.5
         vel_msg.angular.z = 0
-        kurva = False
+
+        savedSpeed = 0.5
+        savedDirection = 0
 
     # Reset counter
     blueCounter = 0
@@ -107,6 +124,7 @@ def pickUp():
     global right
     global straight
     global blackCounter
+    global saveDriveback
     vel_msg = Twist()
     blueCounter += 1
 
@@ -130,15 +148,22 @@ def pickUp():
             vel_msg.angular.z = 0.0
         elif (rightColor == white or rightColor == yellow) and (leftColor == white or leftColor == yellow):
             # Drive right/left
+            if saveDriveback == True: # driven over blue
+                vel_msg.linear.x = -0.2
+                vel_msg.angular.z = 0.0
+                for x in xrange(40):
+                    pub.publish(vel_msg)
+                saveDriveback = False
+
             vel_msg.linear.x = 0.0
             vel_msg.angular.z = 0.5
-            for x in xrange(30):
+            for x in xrange(50):
                 pub.publish(vel_msg)
             savedDirection = left
             ausgerichtet = True
             rospy.sleep(2)
             return
-        #1. richtung anerkannt, wie geht es weiter? gas gradeaus! mit black check
+        # 1. richtung anerkannt, wie geht es weiter? gas gradeaus! mit black check
         elif rightColor == blue and (leftColor == white or leftColor == yellow) :
             # Turn right
             vel_msg.linear.x = 0.0
@@ -158,7 +183,7 @@ def pickUp():
         pub.publish(vel_msg)
         return
 
-    #ausgerichtet ist ok, -|- robot unter blaues kreuz nun gas, wenn error, dann spass
+    # ausgerichtet ist ok, -|- robot unter blaues kreuz nun gas, wenn error, dann spass
 
 
     if savedDirection == left and not (leftColor == black or rightColor == black):
@@ -166,9 +191,9 @@ def pickUp():
         vel_msg.linear.x = 0.4
         vel_msg.angular.z = 0.0
         blackCounter +=1
-        if blackCounter > 80:
+        if blackCounter > 160:
             savedDirection = right  # Save direction = left
-                             # spaeter: reboot robot to start (rückwärts fahren)
+                             # spaeter: reboot robot to start (rueckwaerts fahren)
     elif savedDirection == right and not (leftColor == black or rightColor == black):
         # Turn right
         if blackCounter > 0:
@@ -176,11 +201,19 @@ def pickUp():
             vel_msg.angular.z = 0.0
             blackCounter -=1
         elif blackCounter == 0:
+            blackCounter -= 1
             vel_msg.linear.x = 0.0
-            vel_msg.angular.z = -0.5 #dreh in die andere richtung
-            for x in xrange(60):
+            vel_msg.angular.z = -0.5  # dreh zurueck
+            for x in xrange(50):
                 pub.publish(vel_msg)
-        elif blackCounter == 0:
+        elif blackCounter == -1:
+            blackCounter -= 1
+            vel_msg.linear.x = 0.0
+            vel_msg.angular.z = -0.5  # dreh in die andere richtung
+            for x in xrange(50):
+                pub.publish(vel_msg)
+        elif blackCounter < -1:
+            blackCounter -= 1
             vel_msg.linear.x = 0.4
             vel_msg.angular.z = 0.0
     elif rightColor == black or leftColor == black:
