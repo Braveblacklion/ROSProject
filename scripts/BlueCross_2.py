@@ -148,25 +148,28 @@ def pickUp():
             vel_msg.angular.z = 0.0
         elif (rightColor == white or rightColor == yellow) and (leftColor == white or leftColor == yellow):
             # Drive right/left
+            if saveDriveback == False:
+                ausgerichtet = True
+
             if saveDriveback == True: # driven over blue
+                saveDriveback = False
                 vel_msg.linear.x = -0.2
                 vel_msg.angular.z = 0.0
-                for x in xrange(40):
+                for x in xrange(30):
                     pub.publish(vel_msg)
-                saveDriveback = False
-
-            ausgerichtet = True
-            rospy.sleep(2)
+                rospy.sleep(2)
             return
         # 1. richtung anerkannt, wie geht es weiter? gas gradeaus! mit black check
         elif rightColor == blue and (leftColor == white or leftColor == yellow) :
             # Turn right
-            vel_msg.linear.x = 0.0
+            vel_msg.linear.x = -0.1
             vel_msg.angular.z = -0.2 # anpassen, nach richtung robot, changed for on white instead of blue
+            saveDriveback = True
         elif leftColor == blue and (rightColor == white or rightColor == yellow):
             # Turn left
-            vel_msg.linear.x = 0.0
+            vel_msg.linear.x = -0.1
             vel_msg.angular.z = 0.2
+            saveDriveback = True
         elif rightColor == black or leftColor == black:
             # Seems to entered this mode wrongly
             ausgerichtet = False
@@ -181,23 +184,24 @@ def pickUp():
     if savedDirection == left and not (leftColor == black or rightColor == black):
         # Search left
 
-        if blackCounter > 160:
+        if blackCounter > 25:
             savedDirection = right  # Save direction = left
+            blackCounter -= 5
         elif blackCounter < -1:
             vel_msg.linear.x = -0.4
             vel_msg.angular.z = 0.0
         elif blackCounter == -1:
             vel_msg.linear.x = 0.0
             vel_msg.angular.z = 0.5  # dreh zurueck
-            for x in xrange(50):
+            for x in xrange(160):
                 pub.publish(vel_msg)
         elif blackCounter == 0:
             vel_msg.linear.x = 0.0
             vel_msg.angular.z = 0.5
-            for x in xrange(50):
+            for x in xrange(160):
                 pub.publish(vel_msg)
         elif blackCounter > 0:
-            vel_msg.linear.x = -0.4
+            vel_msg.linear.x = 0.4
             vel_msg.angular.z = 0.0
 
         blackCounter += 1
@@ -210,15 +214,16 @@ def pickUp():
         elif blackCounter == 0:
             vel_msg.linear.x = 0.0
             vel_msg.angular.z = -0.5  # dreh zurueck
-            for x in xrange(50):
+            for x in xrange(160):
                 pub.publish(vel_msg)
         elif blackCounter == -1:
             vel_msg.linear.x = 0.0
             vel_msg.angular.z = -0.5  # dreh in die andere richtung
-            for x in xrange(50):
+            for x in xrange(160):
                 pub.publish(vel_msg)
-        elif blackCounter < -160:
+        elif blackCounter < -25:
             savedDirection = left
+            blackCounter +=5
         elif blackCounter < -1:
             vel_msg.linear.x = 0.4
             vel_msg.angular.z = 0.0
